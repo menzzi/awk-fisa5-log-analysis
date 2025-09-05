@@ -1,4 +1,23 @@
 # AWK 사용자/계정 로그 분석
+
+## 👥팀원
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/Hyunsoo1998">
+        <img src="https://github.com/Hyunsoo1998.png" width="100px;" alt="Hyunsoo1998"/><br />
+        <sub><b>김현수</b></sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/menzzi">
+        <img src="https://github.com/menzzi.png" width="100px;" alt="menzzi"/><br />
+        <sub><b>서민지</b></sub>
+      </a>
+    </td>
+  </tr>
+</table>
+
 ## 🔍 프로젝트 개요
 
 **리눅스 서버에서 사용자 및 계정 관련 로그를 수집하고 분석**   
