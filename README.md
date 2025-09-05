@@ -74,10 +74,12 @@
 
 ```shell
 # 실패
+# "failed password" 문자열로 필터링해서 저장
 sudo journalctl | grep -i "failed password" | sudo tee -a /var/log/failed_password.log > /dev/null
 
 # 성공
-sudo journalctl | grep -i "Accepted password" | sudo tee -a /var/log/success_password.log > /dev/null
+# "accepted password" 문자열로 필터링해서 저장
+sudo journalctl | grep -i "accepted password" | sudo tee -a /var/log/success_password.log > /dev/null
 ```
 
 #### 2. cron으로 수집 자동화 (sudo crontab -e)
@@ -92,9 +94,11 @@ sudo journalctl | grep -i "Accepted password" | sudo tee -a /var/log/success_pas
 하루 기준으로 최근 1분 로그만 기록하려면:
 ```shell
 # 실패
+# /var/log/failed_password.log에 로그 저장
 */1 * * * * journalctl _COMM=sshd --since "1 minute ago" --output=short-iso | grep -i "failed password" >> /var/log/failed_password.log
 
 # 성공
+# /var/log/success_password.log에 로그 저장
 */1 * * * * journalctl _COMM=sshd --since "1 minute ago" --output=short-iso | grep -i "accepted password" >> /var/log/success_password.log
 ```
 
@@ -105,6 +109,7 @@ sudo journalctl | grep -i "Accepted password" | sudo tee -a /var/log/success_pas
 #### 3. AWK를 활용해 유의미한 데이터 추출
 **3.1 사용자별 로그인 시도 실패/성공 횟수**
 ```shell
+
 awk '{count[$(NF-5)]++} END {for(user in count) printf "%-10s : %d\n", user, count[user]}' /var/log/failed_password.log | sort -k3 -nr
 
 awk '{count[$(NF-5)]++} END {for(user in count) printf "%-10s : %d\n", user, count[user]}' /var/log/success_password.log | sort -k3 -nr
@@ -126,29 +131,33 @@ awk '{count[$(NF-5)]++} END {for(user in count) printf "%-10s : %d\n", user, cou
   
 **3.2 IP별 로그인 시도 실패/성공 횟수**
 ```shell
+# IP 주소($(NF-3))를 기준으로 접속 횟수 집계
 awk '{count[$(NF-3)]++} END {for(ip in count) printf "%-10s : %d\n", ip, count[ip]}' /var/log/failed_password.log | sort -k3 -nr
 
 awk '{count[$(NF-3)]++} END {for(ip in count) printf "%-10s : %d\n", ip, count[ip]}' /var/log/success_password.log | sort -k3 -nr
 ```
 **3.3 특정 날짜 로그인 시도 실패/성공 기록 추출**
 ```shell
+# '2025-09-05' 날짜가 포함된 로그만 필터링
 awk '/2025-09-05/ {printf "%-30s %-15s %-12s %-15s\n", $1, $2, $(NF-5), $(NF-3)}' /var/log/failed_password.log
 
 awk '/2025-09-05/ {printf "%-30s %-15s %-12s %-15s\n", $1, $2, $(NF-5), $(NF-3)}' /var/log/success_password.log
 ```
 **3.4 특정 사용자 로그인 시도 실패/성공 기록 추출**
 ```shell
-awk -v user="사용자 아이디" '$0 ~ user {printf "%-30s %-15s %-12s %-15s\n", $1, $2, $(NF-5), $(NF-3)}' /var/log/failed_password.log
+# user 변수에 지정된 "사용자 아이디"가 포함된 로그만 필터링
+awk -v user="<사용자 아이디>" '$0 ~ user {printf "%-30s %-15s %-12s %-15s\n", $1, $2, $(NF-5), $(NF-3)}' /var/log/failed_password.log
 
-awk -v user="사용자 아이디" '$0 ~ user {printf "%-30s %-15s %-12s %-15s\n", $1, $2, $(NF-5), $(NF-3)}' /var/log/success_password.log
+awk -v user="<사용자 아이디>" '$0 ~ user {printf "%-30s %-15s %-12s %-15s\n", $1, $2, $(NF-5), $(NF-3)}' /var/log/success_password.log
 ```
 **3.5 특정 시간대 로그인 시도 실패/성공 로그 집계**
 ```shell
+# 핵심: hour 변수에 지정된 "시간"과 일치하는 로그만 추출
 awk '{
     split($1, dt, "T");
     split(dt[2], tm, "+");
     split(tm[1], t, ":");
-    if(t[1]=="12")
+    if(t[1]=="<검색할 시간(00~23)>")
         printf "%-30s %-15s %-12s %-15s\n", dt[1], tm[1], $(NF-5), $(NF-3)
 }' /var/log/failed_password.log
 
@@ -156,7 +165,7 @@ awk '{
     split($1, dt, "T");
     split(dt[2], tm, "+");
     split(tm[1], t, ":");
-    if(t[1]=="12")
+    if(t[1]=="<검색할 시간(00~23)>")
         printf "%-30s %-15s %-12s %-15s\n", dt[1], tm[1], $(NF-5), $(NF-3)
 }' /var/log/success_password.log
 ```
