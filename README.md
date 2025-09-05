@@ -1,5 +1,4 @@
-# AWK 사용자/계정 로그 분석
-
+# 운영 시스템 관리의 안정성과 보안을 위한 사용자/계정 로그 분석
 ## 👥팀원
 <table>
   <tr>
@@ -19,43 +18,59 @@
 </table>
 <br>
 
-## 🔍 프로젝트 개요
+## 🔍 프로젝트 개요  
 
-**리눅스 서버에서 사용자 및 계정 관련 로그를 수집하고 분석**   
+리눅스 서버에서 **사용자 및 계정 관리와 관련된 로그를 체계적으로 수집·분석**하여  
+운영 시스템의 **안정성 확보와 보안 검증**을 목표로 한 프로젝트입니다.  
 
-- 로그 수집: journalctl
+### 🎯 목표  
+- SSH 로그인, 사용자 생성·변경, 그룹 관리, sudo 권한 사용 등 **핵심 계정 활동 추적**  
+- 로그 기반으로 **운영 시스템 보안 이상 행위 감지** 및 **관리 효율성 향상**  
 
-- 주기적 로그 수집: cron
-
-- 필요한 정보 추출 및 통계: awk
-
-- 대상: SSH 로그인, 사용자 생성/변경, 그룹 변경, 권한 관련 기록   
-
-<br>
-
-## 📌 추출 대상 데이터
-#### 사용자 로그인 기록
-
-- 로그인 실패 기록
-
-- 로그인 성공 기록
-
-#### 그룹 생성/변경 기록
-
-#### 사용자 생성 기록
-
-#### 권한 관리
-
-- 권한(sudo) 사용 기록
-
-- 권한(sudo) 인증 실패 기록
+### 🛠️ 사용 기술 및 도구  
+- **로그 수집**: journalctl 
+- **주기적 자동화**: cron
+- **로그 분석 및 통계**: awk
 
 <br>
 
-# 💻 실습 내용
+## 📌 로그 파일로부터 추출 대상 데이터  
+
+로그 파일로부터 **사용자 및 계정 관련 주요 활동**을 추출하여 분석
+
+| 구분 | 세부 추출 항목 |
+| --- | --- |
+| **사용자 로그인 기록** | - 로그인 실패 기록<br> - 로그인 성공 기록 |
+| **운영 시스템 그룹 관리 기록** | - 그룹 생성 기록<br> - 그룹 변경 기록 |
+| **사용자 계정 기록** | - 사용자 생성 기록 |
+| **권한 관리 기록** | - sudo 권한 사용 기록<br> - sudo 인증 실패 기록 |
+
+<br>
+
+# ⚙️ 운영 테스트
+
+#### 1. 사용자 로그인 기록  
+- 로그인 실패 기록  
+- 로그인 성공 기록  
+
+#### 2. 그룹 관리 기록  
+- 그룹 생성 기록  
+- 그룹 변경 기록  
+
+#### 3. 사용자 계정 기록  
+- 사용자 생성 기록  
+
+#### 4. 권한 관리 기록  
+- sudo 권한 사용 기록  
+- sudo 인증 실패 기록
+<br>
+
 ## 👨‍💻 사용자 로그인 기록
 > 💡 로그인 기록은 수동으로 로그인 기록을 저장하고, 이후에는 cron을 이용해 주기적으로 자동 수집하도록 설정했습니다.
-#### 1. 저장 (실패 / 성공)
+#### 1. 로그 기록 저장 (로그인 시도 실패 / 성공)
+
+- 로그 기록 저장: 로그인 실패/성공 내역을 `/var/log/failed_password.log`와 `/var/log/success_password.log`에 저장
+- 보안 점검 가능: 로그인 시도 시 이상 징후(빈번한 실패, 특정 IP 반복 시도 등) 확인 가능
 
 ```shell
 # 실패
@@ -65,7 +80,10 @@ sudo journalctl | grep -i "failed password" | sudo tee -a /var/log/failed_passwo
 sudo journalctl | grep -i "Accepted password" | sudo tee -a /var/log/success_password.log > /dev/null
 ```
 
-#### 2. cron으로 주기적 수집 (sudo crontab -e)
+#### 2. cron으로 수집 자동화 (sudo crontab -e)
+
+💡 장점: 주기적으로 로그를 자동 수집하여 사람이 직접 확인하지 않아도 최신 기록 유지, 반복적인 수집 작업 자동화, 보안 모니터링 효율 향상
+
   ⚠️주의 : 1분마다 `journalctl --since "today"`를 실행하면 오늘 시작부터 로그 전체를 매번 읽어 append하므로 로그 중복 발생 가능
   ```shell
   */1 * * * * journalctl --since "today" | grep -i "failed password" | tee -a /var/log/failed_password.log > /dev/null
@@ -84,8 +102,8 @@ sudo journalctl | grep -i "Accepted password" | sudo tee -a /var/log/success_pas
 
 - --output=short-iso → ISO 8601 형식 (YYYY-MM-DDTHH:MM:SS+TZ)으로 출력
 
-#### 3. AWK를 활용한 분석
-**3.1 사용자별 로그인 실패/성공 횟수**
+#### 3. AWK를 활용해 유의미한 데이터 추출
+**3.1 사용자별 로그인 시도 실패/성공 횟수**
 ```shell
 awk '{count[$(NF-5)]++} END {for(user in count) printf "%-10s : %d\n", user, count[user]}' /var/log/failed_password.log | sort -k3 -nr
 
@@ -106,25 +124,25 @@ awk '{count[$(NF-5)]++} END {for(user in count) printf "%-10s : %d\n", user, cou
 
   - -r → 내림차순
   
-**3.2 IP별 실패/성공 횟수**
+**3.2 IP별 로그인 시도 실패/성공 횟수**
 ```shell
 awk '{count[$(NF-3)]++} END {for(ip in count) printf "%-10s : %d\n", ip, count[ip]}' /var/log/failed_password.log | sort -k3 -nr
 
 awk '{count[$(NF-3)]++} END {for(ip in count) printf "%-10s : %d\n", ip, count[ip]}' /var/log/success_password.log | sort -k3 -nr
 ```
-**3.3 특정 날짜 기록 추출**
+**3.3 특정 날짜 로그인 시도 실패/성공 기록 추출**
 ```shell
 awk '/2025-09-05/ {printf "%-30s %-15s %-12s %-15s\n", $1, $2, $(NF-5), $(NF-3)}' /var/log/failed_password.log
 
 awk '/2025-09-05/ {printf "%-30s %-15s %-12s %-15s\n", $1, $2, $(NF-5), $(NF-3)}' /var/log/success_password.log
 ```
-**3.4 특정 사용자 기록 추출**
+**3.4 특정 사용자 로그인 시도 실패/성공 기록 추출**
 ```shell
 awk -v user="사용자 아이디" '$0 ~ user {printf "%-30s %-15s %-12s %-15s\n", $1, $2, $(NF-5), $(NF-3)}' /var/log/failed_password.log
 
 awk -v user="사용자 아이디" '$0 ~ user {printf "%-30s %-15s %-12s %-15s\n", $1, $2, $(NF-5), $(NF-3)}' /var/log/success_password.log
 ```
-**3.5 특정 시간대 실패/성공 로그 집계**
+**3.5 특정 시간대 로그인 시도 실패/성공 로그 집계**
 ```shell
 awk '{
     split($1, dt, "T");
@@ -152,9 +170,9 @@ awk '{
 
 <br>
 
-## 🔐 그룹 생성/변경 기록
+## 🔐 운영 시스템 그룹 생성/변경 기록
 > 💡 지금부터는 cron으로 주기적 수집만 진행했습니다. (수동으로 수집한 뒤 확인하고 진행 or 바로 주기적 수집 진행)
-#### 1. cron으로 주기적 수집 (sudo crontab -e)
+#### 1. cron으로 수집 자동화 (sudo crontab -e)
 ```shell
 # 그룹 생성
 */1 * * * * journalctl --since "1 minute ago" --until "now" -o short-iso _COMM=groupadd >> /var/log/user_activity/group.log
@@ -162,7 +180,7 @@ awk '{
 # 그룹 변경
 */1 * * * * journalctl --since "1 minute ago" --until "now" -o short-iso _COMM=usermod >> /var/log/user_activity/group.log
 ```
-#### 2. awk로 그룹 생성/변경 기록 추출
+#### 2. awk로 운영 시스템 그룹 생성/변경 기록 추출
 ```shell
 awk '/-- No entries --/||NF<4{next}
 {
@@ -203,7 +221,7 @@ awk '/-- No entries --/||NF<4{next}
 <br>
 
 ## 👤 사용자 생성 기록
-#### 1. cron으로 주기적 수집 (sudo crontab -e)
+#### 1. cron으로 수집 자동화 (sudo crontab -e)
 ```shell
 # useradd 명령어로 유저 생성
 */1 * * * * journalctl --since "1 minute ago" --until "now" -o short-iso _COMM=useradd >> /var/log/user_activity/useradd.log
@@ -241,7 +259,7 @@ awk '/useradd/&&/new user:/'{
 
 ## 🛡️ 권한 관리 
 ### 권한(sudo) 사용 기록
-#### 1. cron으로 주기적 수집 (sudo crontab -e)
+#### 1. cron으로 수집 자동화 (sudo crontab -e)
 ```shell
 # sudo 로그 (모든 사용자)
 */1 * * * * journalctl --since "1 minute ago" --until "now" -o short-iso -t sudo >> /var/log/user_activity/sudo_all.log
@@ -281,7 +299,7 @@ awk '/COMMAND=/'{
 --- 
 
 ### 권한(sudo) 실패 기록
-#### 1. cron으로 주기적 수집 (sudo crontab -e)
+#### 1. cron으로 수집 자동화 (sudo crontab -e)
 ```shell
 # 인증 실패 로그
 */1 * * * * journalctl --since "1 minute ago" --until "now" -o short-iso SYSLOG_FACILITY=10 | grep -E "authentication failure|Failed password" >> /var/log/user_activity/auth_fail.log
@@ -319,7 +337,7 @@ awk '/authentication failure/'{
 
 ## ⚡ 트러블 슈팅
 
-### 1. 로그 기록 저장 중 `Permission denied` 발생
+### 1. 일반 사용자가 로그 기록 저장 중 `Permission denied` 발생
 
 ```bash
 ubuntu@myserver00:~$ sudo journalctl | grep -i "failed password" > /var/log/failed_password.log
