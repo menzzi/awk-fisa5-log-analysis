@@ -17,6 +17,7 @@
     </td>
   </tr>
 </table>
+<br>
 
 ## 🔍 프로젝트 개요
 
@@ -316,7 +317,6 @@ awk '/authentication failure/'{
   - 값이 없으면 "N/A"로 처리
  
 <br>
----
 
 ## ⚡ 트러블 슈팅
 
@@ -343,10 +343,27 @@ sudo journalctl | grep -i "failed password" | sudo tee -a /var/log/failed_passwo
 
 - -a : append 모드 (>>와 동일)
 
-- > /dev/null : 화면 출력 억제, 파일에만 저장
+- /dev/null : 화면 출력 억제, 파일에만 저장
 
 
 ### 2. 사용자별 적용되는 crontab 범위
+
+일반 사용자(ubuntu)의 crontab -e
+
+- 실행 권한: 해당 사용자 권한으로 실행
+
+- 제한: 홈 디렉터리(/home/ubuntu)와 같이 접근 가능한 파일에만 동작
+
+- 주요 목적: 개인 파일 백업, 스크립트 실행, 알림 등 개인 자동화
+
+root 사용자의 crontab -e
+
+- 실행 권한: 시스템 전체에 접근 가능한 root 권한으로 실행
+
+- 가능 작업: 모든 파일 수정/삭제, 시스템 서비스 관리
+
+- 주요 목적: 시스템 전체 백업, 로그 관리(logrotate), 서비스 재시작, 보안 업데이트 등 운영 및 관리 자동화
+
 
 | **구분** | **일반 사용자** | **root 사용자** |
 | --- | --- | --- |
