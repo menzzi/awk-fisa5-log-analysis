@@ -48,12 +48,10 @@ sudo journalctl | grep -i "Accepted password" | sudo tee -a /var/log/success_pas
 ```
 
 #### 2. cron으로 주기적 수집 (sudo crontab -e)
-  ⚠️ 주의  
+  ⚠️주의 : 1분마다 `journalctl --since "today"`를 실행하면 오늘 시작부터 로그 전체를 매번 읽어 append하므로 로그 중복 발생 가능
   ```shell
   */1 * * * * journalctl --since "today" | grep -i "failed password" | tee -a /var/log/failed_password.log > /dev/null
   ```
-
-- 1분마다 journalctl --since "today"를 실행하면 오늘 시작부터 로그 전체를 매번 읽어 append하므로 로그 중복 발생 가능
 
 하루 기준으로 최근 1분 로그만 기록하려면:
 ```shell
@@ -297,3 +295,43 @@ awk '/authentication failure/'{
 - sudo 로그 처리:
   - user= → 사용자, tty= → 터미널 정보 추출
   - 값이 없으면 "N/A"로 처리
+ 
+<br>
+---
+
+## ⚡ 트러블 슈팅
+
+### 1. 로그 기록 저장 중 `Permission denied` 발생
+
+```bash
+ubuntu@myserver00:~$ sudo journalctl | grep -i "failed password" > /var/log/failed_password.log
+-bash: /var/log/failed_password.log: Permission denied
+```
+
+원인
+
+- /var/log/ 디렉토리는 root 전용
+
+- sudo journalctl까지만 root 권한이고, > 리다이렉션은 현재 쉘에서 실행되므로 root 권한이 적용되지 않음
+
+**해결법: sudo tee 사용**
+
+```bash
+sudo journalctl | grep -i "failed password" | sudo tee -a /var/log/failed_password.log > /dev/null
+```
+
+- tee : 표준 입력을 파일로 저장하는 명령어
+
+- -a : append 모드 (>>와 동일)
+
+- > /dev/null : 화면 출력 억제, 파일에만 저장
+
+
+### 2. 사용자별 적용되는 crontab 범위
+
+| **구분** | **일반 사용자** | **root 사용자** |
+| --- | --- | --- |
+| 실행 명령어 | `crontab -e` (일반 유저) | `sudo crontab -e` (root 유저) |
+| 실행 권한 | **제한된 사용자 권한** | **시스템의 모든 권한 (관리자)** |
+| 주요 목적 | 개인 작업 자동화 | 시스템 관리 및 운영 자동화 |
+| 작업 파일 위치 | `/var/spool/cron/crontabs/<사용자명>` | `/var/spool/cron/crontabs/root` |
