@@ -1,9 +1,10 @@
-# 🗄️ MySQL 설치 및 자동 백업 실습
+# 🗄️ MySQL 설치 및 자동 백업 환경 구축
 ## 📌 1. MySQL 설치 및 데이터 생성
 ``` bash
 # 패키지 업데이트 및 MySQL 설치
 sudo apt-get update
 sudo apt-get install mysql-server
+sudo systemctl enable --now mysql-server
 
 # 상태 확인
 sudo systemctl status mysql
@@ -65,7 +66,7 @@ SELECT * FROM DEPT;
 SELECT * FROM EMP;
 ```
 
-## 📌 2. 자동화: MySQL 덤프 + 압축
+## 📌 2. MySQL 덤프 및 백업 
 **스크립트 작성 (/root/script/mysql-dump.sh)**
 ``` bash
 #!/bin/bash
@@ -77,6 +78,7 @@ mysqldump -u root -pubuntu sqld > /root/db.sql
 SQL_DUMP_DIR="/root/script"
 
 # 날짜 형식: YYYYMMDD_HHMMSS
+# MySQL 덤프파일 tar로 압축 진행.
 SQL_NAME="MYSQL_$(date +%Y%m%d_%H%M%S).tar.gz"
 
 # 백업 수행 (db.sql 포함)
@@ -87,6 +89,7 @@ echo "backup_success: $SQL_DUMP_DIR/$SQL_NAME"
 
 실행 권한 부여:
 ```bash
+# 권한 설정 기본값은 644로 설정되어 있으므로 실행 권한 추가
 chmod +x /root/script/mysql-dump.sh
 ```
 
@@ -94,9 +97,11 @@ chmod +x /root/script/mysql-dump.sh
 ``` bash
 sudo crontab -e
 
-1 * * * * /root/script/mysql-dump.sh >> /root/script/backup.log 2>&1
+0 * * * * /root/script/mysql-dump.sh >> /root/script/backup.log 2>&1
 ```
 
-- 매 시간 1분마다 자동 백업 실행
+- 매 시각 정각에 mysql-dump.sh 스크립트가 실행됨
 
 - 실행 결과는 /root/script/backup.log 에 기록됨
+
+- 2>&1 성공 메시지와 에러 메시지를 한 파일에서 함께 관리하기 위함
